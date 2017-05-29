@@ -23,12 +23,11 @@ DM_Synth : Synth {
 		def = SynthDef('dream-machine',
 			{
 				|out = 0, amp = 0, freq = 320,
-				bbr = 0, binh = 1, /*frag = 1,*/
+				bbr = 0, binh = 1,
 				fmf = 0, fmamt = 0,
 				lfreq = 4, vibamt = 0, tremamt = 0,
-				acyc = 1, alog = 0, /*glog = 1,*/
+				acyc = 1, alog = 0,
 				gamt = 0, gfreq = 4, gwidth = 0.5,
-				// nmin = 0, nmax = 1,
 				dist = 0,
 				eqlo = 1, eqmid = 1, eqhi = 1,
 				revamt = 0, revsize = 0.5, revdamp = 0.5,
@@ -46,35 +45,22 @@ DM_Synth : Synth {
 				var tremolo = 1 + (tremamt * lfo.abs.neg);
 				// grain
 				var grnfreq = gfreq * 8;
-				var grain = //1 + (gamt * (LFTri.kr(16 * gfreq) - gwidth).clip(-1, 0));
-				1 + (gamt * (EnvGen.kr(Env.linen(0.01, gwidth/grnfreq, 0.01),
+				var grain =	1 + (gamt * (EnvGen.kr(Env.linen(0.01, gwidth/grnfreq, 0.01),
 					Impulse.kr(grnfreq)) - 1));
 				// présence cyclique
 				var pcyc = [1, acyc];
-				// générateur d'impulsions
-				// var trig = Impulse.kr(itfreq);
 				// générateur de gate
 				var period = itfreq.reciprocal;
-				// var div = 2 ** itdiv;
 				var gate = DemandEnvGen.kr(Dseq([0,1], inf),
 					period * Dstutter(2, Dseq([Dswitch([
 						Dseq(1!4),
 						Dshuf((1!2) ++ (0.5!4)),
 						Dshuf([1]++(0.5!4)++(0.25!4))], itdiv)], inf))
 						* Dseq([itwidth, 1 - itwidth], inf), 0);
-				// var gate = DemandEnvGen.kr(Dseq([0,1], inf),
-				// 	period * ((0.5 ** Dstutter(2, Drand((0..3), inf) % div)) *
-				// Dseq([itwidth, 1 - itwidth], inf)), 0);
 				// générateur d'enveloppe (itération)
-				// var period = itfreq.reciprocal;
 				var att = 0.1 * itatt;
 				var peak = 1 + itpeak;
 				var iter = EnvGen.kr(Env([0,peak,1,0],[att/2, att/2, itrel], releaseNode: 2), gate);
-				// var iter1 = EnvGen.kr(Env([0,peak,1,1,0],[att/2, att/2, period * itwidth, itrel]),
-				// PulseDivider.kr(trig, 2, 0));
-				// var iter2 = EnvGen.kr(Env([0,peak,1,1,0],[att/2, att/2, period * itwidth, itrel]),
-				// PulseDivider.kr(trig, 2, 1));
-				// var iter = max(iter1, iter2);
 				// générateur de hauteur
 				var nbkeys = 2 ** itkeys;
 				var nboct = 1 + itoct;
@@ -82,10 +68,7 @@ DM_Synth : Synth {
 					(1 + ((Dseq([0] ++ (Drand((0..3))!(nb-1))) % nbkeys) / nbkeys))
 					* (2 ** Dstutter(nb, Drand((0..3)) % nboct))
 				}, itdiv)], inf));
-				// var scale = 2 ** Demand.kr(trig, 0,
-				// 	((Dxrand((0..3), inf) % nbkeys) / nbkeys)
-				// + Dstutter(nbkeys, Dxrand((0..3), inf) % nboct));
-				// l'égaliseur
+				// égaliseur
 				var diff = ([eqlo, eqmid, eqhi] /
 					([eqlo, eqmid, eqhi] * [0.3, 0.4, 0.3]).sum).differentiate;
 				var equaliser = {|i|
@@ -106,13 +89,6 @@ DM_Synth : Synth {
 					(0.5/((i+1)**1.2)) * amp
 					// égaliseur
 					* equaliser.(i)
-					// fragmentation
-					// * EnvGen.kr(Env.linen(0.01,0.01,0.01),
-					// Impulse.kr(Rand(100, 120) * frag))
-					// * LFPulse.kr(32 + i, width: frag)
-					// // calibre
-					// * ((nmax*32)-i).clip(0, 1)
-					// * (i+1-(nmin*nmax*32)).clip(0,1)
 					// présence cyclique
 					* pcyc[i%2]
 					// présence logarithmique
@@ -141,14 +117,7 @@ DM_Synth : Synth {
 				// sortie
 				Out.ar(out,
 					// reverb
-					FreeVerb.ar(
-						sig,
-						// // égaliseur
-						// (eqlo * LPF.ar(sig, 220))
-						// + (eqmid * BPF.ar(sig, 880, 2))
-						// + (eqhi * HPF.ar(sig, 3520)),
-						// paramètres de la reverb
-						revamt, revsize, revdamp)
+					FreeVerb.ar(sig, revamt, revsize, revdamp)
 					// stereo
 					! 2);
 			}
@@ -253,9 +222,6 @@ DM_Synth : Synth {
 
 	save {|path|
 		var file;
-		// var baseDir = Platform.userHomeDir +/+ "DreamMachine";
-		// File.mkdir(baseDir);
-		// file = File(baseDir +/+ Date.getDate.stamp ++ ".dream-machine", "w");
 		file = File(path, "w");
 		file.write([argDefs.flop[0], knobs.collect(_.value)].flop.asCompileString);
 		file.close;
