@@ -6,7 +6,7 @@ DM_Synth : Synth {
 	// structure de l'interface
 	classvar rowSizes;
 
-	// les Bus employés
+	// les Bus employés et leurs valeurs
 	var busses;
 	// l'interface graphique
 	var interface, knobs;
@@ -164,9 +164,15 @@ DM_Synth : Synth {
 		// récupérer les arguments
 		#argNames ... defaults = argDefs.flop;
 		// instancier et initialiser les bus
-		busses = defaults.flop.collect {|val| Bus.control().set(val[1].(val[0])) };
+		busses = defaults.flop.collect {|val|
+			var value = val[1].(val[0]);
+			[
+				Bus.control().set(value),
+				value
+			]
+		};
 		// instancier le synthétiseur
-		^super.new(def.name, ['out', out] ++ [argNames, busses.collect(_.asMap)].flop.flat)
+		^super.new(def.name, ['out', out] ++ [argNames, busses.collect(_[0].asMap)].flop.flat)
 		// initialiser les champs
 		.synthInit(busses);
 	}
@@ -182,7 +188,9 @@ DM_Synth : Synth {
 	}
 
 	setBus {|index, value|
-		busses[index].set(argDefs[index][2].(value));
+		var val = argDefs[index][2].(value);
+		busses[index][0].set(val);
+		busses[index][1] = val;
 	}
 
 	makeInterface {
@@ -223,7 +231,7 @@ DM_Synth : Synth {
 	save {|path|
 		var file;
 		file = File(path, "w");
-		file.write([argDefs.flop[0], knobs.collect(_.value)].flop.asCompileString);
+		file.write([argDefs.flop[0], busses.collect(_[1])].flop.asCompileString);
 		file.close;
 	}
 
@@ -240,8 +248,8 @@ DM_Synth : Synth {
 				var index = names.indexOf(elt[0]);
 				var value = elt[1];
 				if (index.notNil) {
-					this.setBus(index, value * 127);
-					if (interface.notNil) {knobs[index].value = value};
+					this.setBus(index, value);
+					if (interface.notNil) {knobs[index].value = value/127};
 				};
 			};
 		};
