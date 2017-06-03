@@ -237,7 +237,12 @@ DM_Synth : Synth {
 		};
 
 		if (map.notNil) {
+			var out;
 			MIDIClient.init(1, 1);
+			// initialisation du controlleur externe
+			out = MIDIOut(0);
+			busses.do {|bus, i| out.control(nil, map[i], bus[1])};
+			// initialisation du récepteur MIDI
 			MIDIFunc.cc({|val, num, chan, src|
 				this.setBus(map.indexOf[num], val);
 				// DEBUG
