@@ -6,6 +6,5 @@
 	Server.default.sync;
 	machine = DM_Synth();
 	machine.makeMIDIInterface;
-	// m = machine;
 }.fork
 )

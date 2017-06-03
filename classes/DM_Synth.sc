@@ -123,6 +123,7 @@ DM_Synth : Synth {
 			}
 		);
 		argDefs = [
+			// matière
 			['amp', 0, unitF],
 			['freq', 64, freqF],
 			['bbr', 0, unitF],
@@ -131,12 +132,14 @@ DM_Synth : Synth {
 			['fmamt', 0, unitF],
 			['acyc', 127, unitF],
 			['alog', 0, unitF],
+			// entretien
 			['lfreq', 64, lfreqF],
 			['vibamt', 0, unitF],
 			['tremamt', 0, unitF],
 			['gamt', 0, unitF],
 			['gfreq', 64, lfreqF],
 			['gwidth', 64, unitF],
+			// effets
 			['eqlo', 64, dbampF],
 			['eqmid', 64, dbampF],
 			['eqhi', 64, dbampF],
@@ -144,6 +147,7 @@ DM_Synth : Synth {
 			['revamt', 0, unitF],
 			['revsize', 64, unitF],
 			['revdamp', 64, unitF],
+			// séquenceur
 			['itwidth', 127, unitF],
 			['itfreq', 32, lfreqF],
 			['itpeak', 0, unitF],
@@ -235,9 +239,9 @@ DM_Synth : Synth {
 		if (map.notNil) {
 			MIDIClient.init(1, 1);
 			MIDIFunc.cc({|val, num, chan, src|
-				// this.setBus(map.indexOf[num], val);
+				this.setBus(map.indexOf[num], val);
 				// DEBUG
-				num.postln;
+				// num.postln;
 			}, map);
 		};
 	}
