@@ -219,8 +219,8 @@ DM_Synth : Synth {
 		interface.front;
 	}
 
-	makeMidiInterface {|layout =
-		(Platform.userExtensionDir +/+ "extras" +/+ "MIDIMaps" +/+ "BCR.midimap.scd")|
+	makeMIDIInterface {|layout =
+		(Platform.userExtensionDir +/+ "DreamMachine" +/+ "extras" +/+ "MIDIMaps" +/+ "BCR.midimap.scd")|
 		var map = if (File.exists(layout))
 		{
 			var file = File(layout, "r");
