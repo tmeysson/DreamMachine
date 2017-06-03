@@ -219,6 +219,29 @@ DM_Synth : Synth {
 		interface.front;
 	}
 
+	makeMidiInterface {|layout =
+		(Platform.userExtensionDir +/+ "extras" +/+ "MIDIMaps" +/+ "BCR.midimap.scd")|
+		var map = if (File.exists(layout))
+		{
+			var file = File(layout, "r");
+			var res = file.readAllString.interpret;
+			file.close;
+			res;
+		} {
+			// fallback
+			"MIDI map load failed !".postln;
+		};
+
+		if (map.notNil) {
+			MIDIClient.init(1, 1);
+			MIDIFunc.cc({|val, num, chan, src|
+				// this.setBus(map.indexOf[num], val);
+				// DEBUG
+				num.postln;
+			}, map);
+		};
+	}
+
 	free {
 		// fermer l'interface si elle existe
 		if (interface.notNil) {interface.close; interface = nil};
