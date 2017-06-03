@@ -169,10 +169,10 @@ DM_Synth : Synth {
 		#argNames ... defaults = argDefs.flop;
 		// instancier et initialiser les bus
 		busses = defaults.flop.collect {|val|
-			var value = val[1].(val[0]);
+			// var value = val[1].(val[0]);
 			[
-				Bus.control().set(value),
-				value
+				Bus.control().set(val[1].(val[0])),
+				val[0]
 			]
 		};
 		// instancier le synthétiseur
