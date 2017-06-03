@@ -172,7 +172,7 @@ DM_Synth : Synth {
 			]
 		};
 		// instancier le synthétiseur
-		^super.new(def.name, ['out', out] ++ [argNames, busses.collect(_[0].asMap)].flop.flat)
+		^super.new(def.name, ['out', out] ++ [argNames, busses.collect{|b| b[0].asMap}].flop.flat)
 		// initialiser les champs
 		.synthInit(busses);
 	}
@@ -188,8 +188,8 @@ DM_Synth : Synth {
 	}
 
 	setBus {|index, value|
-		var val = argDefs[index][2].(value);
-		busses[index][0].set(val);
+		var val = value.round.asInteger;
+		busses[index][0].set(argDefs[index][2].(val));
 		busses[index][1] = val;
 	}
 
@@ -250,6 +250,28 @@ DM_Synth : Synth {
 				if (index.notNil) {
 					this.setBus(index, value);
 					if (interface.notNil) {knobs[index].value = value/127};
+				};
+			};
+		};
+	}
+
+	// for reverse compatibility reasons:
+	oldload {|path|
+		var file;
+		if (File.exists(path)) {
+			var content, names;
+			"FOUND".postln;
+			file = File(path, "r");
+			content = file.readAllString;
+			file.close;
+			content = content.interpret;
+			names = argDefs.flop[0];
+			content.do {|elt|
+				var index = names.indexOf(elt[0]);
+				var value = elt[1];
+				if (index.notNil) {
+					this.setBus(index, value * 127);
+					if (interface.notNil) {knobs[index].value = value};
 				};
 			};
 		};
