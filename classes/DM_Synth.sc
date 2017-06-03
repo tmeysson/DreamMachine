@@ -244,9 +244,9 @@ DM_Synth : Synth {
 			busses.do {|bus, i| out.control(0, map[i], bus[1])};
 			// initialisation du récepteur MIDI
 			MIDIFunc.cc({|val, num, chan, src|
-				this.setBus(map.indexOf[num], val);
+				this.setBus(map.indexOf(num), val);
 				// DEBUG
-				chan.postln;
+				// "%: %".format(chan, num).postln;
 			}, map);
 		};
 	}
