@@ -134,7 +134,7 @@ DM_Synth : Synth {
 					// distorsion inharmonique
 					num = num ** binh;
 					// amplitude de base
-					(0.5/((i+1)**1.2)) * amp
+					(0.5/((i+1)**1.2)) * (amp ** (4 ** dist))
 					// égaliseur
 					* equaliser.(i)
 					// présence cyclique
