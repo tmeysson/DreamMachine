@@ -28,9 +28,10 @@ DM_Synth : Synth {
 			// motifs triés par niveau de subdivision
 			var patLvls = List()!3;
 			// durée du niveau 1
-			var base = div.reciprocal;
+			var base1 = 0.5.round(div.reciprocal);
+			var base2 = 1 - base1;
 			// combinaisons des nombres de divisions par niveau
-			var cuts = ({|i| {|j| [i,j]} ! (div*i+1)} ! (length+1)).flatten;
+			var cuts = ({|i| {|j| [i,j]} ! (i+1)} ! (length+1)).flatten;
 			// création des motifs
 			var pats = cuts.collect {|cut|
 				var l1, l2;
@@ -40,13 +41,14 @@ DM_Synth : Synth {
 					// niveau maximum de division
 					cut.select(_!=0).size,
 					// séquence des fractions
-					(1!(length-l1)) ++ (base!(div*l1-l2)) ++ ((0.5*base)!(2*l2))
+					(1!(length-l1)) ++ (base1!(l1-l2)) ++ (base2!(l1-l2))
+					++ ((0.5*base1)!(2*l2)) ++ ((0.5*base2)!(2*l2))
 				];
 			};
 			// ajouter les motifs dans le niveau approprié
 			pats.do {|pat| patLvls[pat[0]].add(pat[1])};
 			// calculer la longueur des motifs
-			patLvls = patLvls.collect(_.collectAs({|pat| [pat, pat.size]}, Array));
+			patLvls = patLvls.collect(Array.newFrom(_));//.collectAs({|pat| pat}, Array));
 		};
 
 		// générer la liste des motifs suivant la longueur et la subdivision
@@ -93,7 +95,7 @@ DM_Synth : Synth {
 				// générateur de gate
 				var pattern = Dswitch(
 					patsCat.collect {|cat|
-						Drand(cat.collect {|pat| Dshuf(pat[0], inf)})},
+						Drand(cat.collect {|pat| Dshuf(pat, inf)})},
 					patsSub);
 				var gate = DemandEnvGen.kr(Dseq([0,2,Dseq([0,1], inf)]),
 					period * Dstutter(2, pattern)
