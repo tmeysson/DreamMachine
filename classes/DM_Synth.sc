@@ -82,7 +82,8 @@ DM_Synth : Synth {
 				var tremolo = 1 + (tremamt * lfo.abs.neg);
 				// grain
 				var grnfreq = gfreq * 8;
-				var grain =	1 + (gamt * (EnvGen.kr(Env.linen(0.01, gwidth/grnfreq, 0.01),
+				var grnprd = gwidth/grnfreq;
+				var grain =	1 + (gamt * (EnvGen.kr(Env.linen(0.1 * grnprd, 0.8 * grnprd, 0.1 * grnprd),
 					Impulse.kr(grnfreq)) - 1));
 				// présence cyclique
 				var pcyc = [1, acyc];
