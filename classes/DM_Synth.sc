@@ -3,6 +3,8 @@ DM_Synth : Synth {
 	classvar def;
 	// la définition des arguments
 	classvar argDefs;
+	// les motifs rythmiques, par signature
+	classvar patsSign;
 	// structure de l'interface
 	classvar rowSizes;
 
@@ -20,6 +22,39 @@ DM_Synth : Synth {
 		var posnegF = {|width| {|v| width * ((v/64)-1)}};
 		var dbampF = {|v| ((v/5.3333333333333)-12).dbamp};
 		var intF = {|max| {|v| ((v/127)*max).round}};
+
+		// ensemble des motifs d'une certaine longueur et subdivision
+		var patterns = {|length, div|
+			// motifs triés par niveau de subdivision
+			var patLvls = List()!3;
+			// durée du niveau 1
+			var base = div.reciprocal;
+			// combinaisons des nombres de divisions par niveau
+			var cuts = ({|i| {|j| [i,j]} ! (div*i+1)} ! (length+1)).flatten;
+			// création des motifs
+			var pats = cuts.collect {|cut|
+				var l1, l2;
+				// récupération des nombres de divisions
+				#l1, l2 = cut;
+				[
+					// niveau maximum de division
+					cut.select(_!=0).size,
+					// séquence des fractions
+					(1!(length-l1)) ++ (base!(div*l1-l2)) ++ ((0.5*base)!(2*l2))
+				];
+			};
+			// ajouter les motifs dans le niveau approprié
+			pats.do {|pat| patLvls[pat[0]].add(pat[1])};
+			// calculer la longueur des motifs
+			patLvls = patLvls.collect(_.collectAs({|pat| [pat, pat.size]}, Array));
+		};
+
+		// générer la liste des motifs suivant la longueur et la subdivision
+		patsSign = [4,3].collect {|length|
+			[2,3,5].collect {|div|
+				patterns.(length, div)
+		}};
+
 		def = SynthDef('dream-machine',
 			{
 				|out = 0, amp = 0, freq = 320,
@@ -32,8 +67,8 @@ DM_Synth : Synth {
 				eqlo = 1, eqmid = 1, eqhi = 1,
 				revamt = 0, revsize = 0.5, revdamp = 0.5,
 				itwidth = 1, itfreq = 2,
-				itdiv = 0,
-				itpeak = 0, itatt = 0.25, itrel = 0.5,
+				itlen = 0, itmode = 0, itdiv = 0,
+				itbeat = 0, itpeak = 0, itatt = 0.25, itrel = 0.5,
 				itkeys = 0, itoct = 0|
 				// FM
 				var fm = 1 + (SinOsc.ar(freq * (0.25 ** fmf)) * fmamt);
@@ -49,32 +84,43 @@ DM_Synth : Synth {
 					Impulse.kr(grnfreq)) - 1));
 				// présence cyclique
 				var pcyc = [1, acyc];
-				// générateur de gate
+
+				// générateur de motif
 				var period = itfreq.reciprocal;
-				var gate = DemandEnvGen.kr(Dseq([0,1], inf),
-					period * Dstutter(2, Dseq([Dswitch([
-						Dseq(1!4),
-						Dshuf((1!2) ++ (0.5!4)),
-						Dshuf([1]++(0.5!4)++(0.25!4))], itdiv)], inf))
-						* Dseq([itwidth, 1 - itwidth], inf), 0);
+				var reset = DemandEnvGen.kr(Dseq([1,0], inf), Dseq([0.001, period*(4-itlen)-0.001], inf));
+				var patsSub = (itlen * 9) + (itmode * 3) + itdiv;
+				var patsCat = patsSign.flatten(2);
+				// générateur de gate
+				var pattern = Dswitch(
+					patsCat.collect {|cat|
+						Drand(cat.collect {|pat| Dshuf(pat[0], inf)})},
+					patsSub);
+				var gate = DemandEnvGen.kr(Dseq([0,2,Dseq([0,1], inf)]),
+					period * Dstutter(2, pattern)
+					* Dseq([itwidth, 1 - itwidth], inf), 0, reset: reset);
 				// générateur d'enveloppe (itération)
 				var att = 0.1 * itatt;
 				var peak = 1 + itpeak;
-				var iter = EnvGen.kr(Env([0,peak,1,0],[att/2, att/2, itrel], releaseNode: 2), gate);
+				// temps forts
+				var beats = EnvGen.kr(Env.perc(att/2, itrel, itbeat), gate-1);
+				// var beats = DemandEnvGen.kr(Dpoll(Dseq([1,2,2,Dseq([1],inf)])),
+				// Dseq([att/2, period-att, att/2, inf]), 1, reset: reset);
+				var iter = EnvGen.kr(Env([0,peak,1,0],[att/2, att/2, itrel], releaseNode: 2), gate)
+				+ beats;
 				// générateur de hauteur
 				var nbkeys = 2 ** itkeys;
 				var nboct = 1 + itoct;
-				var scale = Demand.kr(gate, 0, Dseq([Dswitch([4,6,9].collect {|nb|
-					(1 + ((Dseq([0] ++ (Drand((0..3))!(nb-1))) % nbkeys) / nbkeys))
-					* (2 ** Dstutter(nb, Drand((0..3)) % nboct))
-				}, itdiv)], inf));
-				// égaliseur
+				var scale = Demand.kr(gate, reset, Dseq([
+					(1 + ((Dseq([0, Drand((0..3), inf)], inf) % nbkeys) / nbkeys))
+					* (2 ** (Dstutter(inf, Drand((0..3))) % nboct))
+				], inf));
 				var diff = ([eqlo, eqmid, eqhi] /
 					([eqlo, eqmid, eqhi] * [0.3, 0.4, 0.3]).sum).differentiate;
 				var equaliser = {|i|
 					var oct = (i+1).log2;
 					diff[0] + ((oct-1).clip(0,1) * diff[1]) + ((oct-3).clip(0,1) * diff[2]);
 				};
+
 				// le signal généré
 				var sig =
 				// génération de partiels
@@ -150,15 +196,19 @@ DM_Synth : Synth {
 			// séquenceur
 			['itwidth', 127, unitF],
 			['itfreq', 32, lfreqF],
-			['itpeak', 0, unitF],
-			['itatt', 64, timeF],
-			['itrel', 96, timeF],
+			['itlen', 0, intF.(1)],
+			['itmode', 0, intF.(2)],
 			['itdiv', 0, intF.(2)],
 			['itkeys', 0, intF.(2)],
 			['itoct', 0, intF.(2)],
+			// dynamique
+			['itbeat', 0, unitF],
+			['itpeak', 0, unitF],
+			['itatt', 64, timeF],
+			['itrel', 96, timeF],
 		];
 
-		rowSizes = [8,6,7,8]
+		rowSizes = [8,6,7,7,4]
 	}
 
 	// créer le synthétiseur
