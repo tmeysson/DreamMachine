@@ -65,6 +65,7 @@ DM_Synth : Synth {
 				lfreq = 4, vibamt = 0, tremamt = 0,
 				acyc = 1, alog = 0,
 				gamt = 0, gfreq = 4, gwidth = 0.5,
+				ramt = 0, rfreq = 0,
 				dist = 0,
 				eqlo = 1, eqmid = 1, eqhi = 1,
 				revamt = 0, revsize = 0.5, revdamp = 0.5,
@@ -85,6 +86,8 @@ DM_Synth : Synth {
 				var grnprd = gwidth/grnfreq;
 				var grain =	1 + (gamt * (EnvGen.kr(Env.linen(0.1 * grnprd, 0.8 * grnprd, 0.1 * grnprd),
 					Impulse.kr(grnfreq)) - 1));
+				// modulation en anneau
+				var ring = 1 + (ramt * (SinOsc.ar(freq * (2 ** rfreq)) - 1));
 				// présence cyclique
 				var pcyc = [1, acyc];
 
@@ -130,6 +133,8 @@ DM_Synth : Synth {
 				(Mix.fill(32) {|i|
 					// indice du partiel
 					var num = i+1;
+					// présence logarithmique
+					var plog = (1 - (alog * ((i+1).log2 * 4).fold(0, 2).clip(0, 1)));
 					// bruitage
 					num = num + (bbr * LFNoise0.kr(500));
 					// distorsion inharmonique
@@ -141,7 +146,7 @@ DM_Synth : Synth {
 					// présence cyclique
 					* pcyc[i%2]
 					// présence logarithmique
-					* (1 - (alog * ((i+1).log2 * 4).fold(0, 2).clip(0, 1)))
+					* plog
 					// égaliseur
 					* equaliser.(i)
 					// oscillateur
@@ -158,6 +163,8 @@ DM_Synth : Synth {
 					* tremolo
 					// grain
 					* grain
+					// modulation en anneau
+					* ring
 					// itérateur
 					* iter
 				)
@@ -188,6 +195,8 @@ DM_Synth : Synth {
 			['gamt', 0, unitF],
 			['gfreq', 64, lfreqF],
 			['gwidth', 64, unitF],
+			['ramt', 0, unitF],
+			['rfreq', 64, posnegF.(1)],
 			// effets
 			['eqlo', 64, dbampF],
 			['eqmid', 64, dbampF],
@@ -211,7 +220,7 @@ DM_Synth : Synth {
 			['itrel', 96, timeF],
 		];
 
-		rowSizes = [8,6,7,7,4]
+		rowSizes = [8,8,7,7,4]
 	}
 
 	// créer le synthétiseur
