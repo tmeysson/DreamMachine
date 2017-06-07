@@ -199,7 +199,7 @@ DM_Synth : Synth {
 			['gfreq', 64, lfreqF],
 			['gwidth', 64, unitF],
 			['ramt', 0, unitF],
-			['rfreq', 64, posnegF.(1)],
+			['rfreq', 64, posnegF.(0.5)],
 			// effets
 			['eqlo', 64, dbampF],
 			['eqmid', 64, dbampF],
