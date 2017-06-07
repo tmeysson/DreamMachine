@@ -13,7 +13,7 @@ DM_Synth : Synth {
 	classvar voices, activeVoice, sharedCtrls;
 
 	// les Bus employés et leurs valeurs
-	var busses;
+	var <busses;
 	// l'interface graphique
 	var interface, knobs;
 
