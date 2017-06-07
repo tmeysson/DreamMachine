@@ -73,8 +73,6 @@ DM_Synth : Synth {
 				itlen = 0, itmode = 0, itdiv = 0,
 				itbeat = 0, itpeak = 0, itatt = 0.25, itrel = 0.5,
 				itkeys = 0, itoct = 0|
-				// FM
-				var fm = 1 + (SinOsc.ar(freq * (0.25 ** fmf)) * fmamt);
 				// LFO
 				var lfo = SinOsc.kr(2 * lfreq);
 				// vibrato
@@ -86,8 +84,6 @@ DM_Synth : Synth {
 				var grnprd = gwidth/grnfreq;
 				var grain =	1 + (gamt * (EnvGen.kr(Env.linen(0.1 * grnprd, 0.8 * grnprd, 0.1 * grnprd),
 					Impulse.kr(grnfreq)) - 1));
-				// modulation en anneau
-				var ring = 1 + (ramt * (SinOsc.ar(freq * (2 ** rfreq)) - 1));
 				// présence cyclique
 				var pcyc = [1, acyc];
 
@@ -120,6 +116,13 @@ DM_Synth : Synth {
 					(1 + ((Dseq([0, Drand((0..3), inf)], inf) % nbkeys) / nbkeys))
 					* (2 ** (Dstutter(inf, Drand((0..3))) % nboct))
 				], inf));
+				var keyfreq = freq * scale;
+
+				// FM
+				var fm = 1 + (SinOsc.ar(keyfreq * (0.25 ** fmf)) * fmamt);
+				// modulation en anneau
+				var ring = 1 + (ramt * (SinOsc.ar(keyfreq * (2 ** rfreq)) - 1));
+				// egalisateur
 				var diff = ([eqlo, eqmid, eqhi] /
 					([eqlo, eqmid, eqhi] * [0.3, 0.4, 0.3]).sum).differentiate;
 				var equaliser = {|i|
@@ -150,13 +153,13 @@ DM_Synth : Synth {
 					// égaliseur
 					* equaliser.(i)
 					// oscillateur
-					* SinOsc.ar(freq * num
+					* SinOsc.ar(num
+						// arpégiateur
+						* keyfreq
 						// modulation de fréquence
 						* fm
 						// vibrato
 						* vibrato
-						// arpégiateur
-						* scale
 					)
 					}
 					// tremolo
