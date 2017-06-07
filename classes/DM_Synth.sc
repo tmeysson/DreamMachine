@@ -7,6 +7,10 @@ DM_Synth : Synth {
 	classvar patsSign;
 	// structure de l'interface
 	classvar rowSizes;
+	// interface MIDI
+	classvar midiFunc, midiMap, midiOut, selectFunc, selectMap;
+	// liste des voix, voix active, contrôles partagés
+	classvar voices, activeVoice, sharedCtrls;
 
 	// les Bus employés et leurs valeurs
 	var busses;
@@ -223,7 +227,11 @@ DM_Synth : Synth {
 			['itrel', 96, timeF],
 		];
 
-		rowSizes = [8,8,7,7,4]
+		sharedCtrls = [24, 25];
+
+		rowSizes = [8,8,7,7,4];
+
+		voices = List();
 	}
 
 	// créer le synthétiseur
@@ -254,6 +262,8 @@ DM_Synth : Synth {
 	synthInit {|bses|
 		// enrgegistrer les Bus
 		busses = bses;
+		// s'ajouter dans la liste des voix
+		voices.add(this);
 	}
 
 	setBus {|index, value|
@@ -288,7 +298,7 @@ DM_Synth : Synth {
 		interface.front;
 	}
 
-	makeMIDIInterface {|layout =
+	*makeMIDIInterface {|layout =
 		(Platform.userExtensionDir +/+ "DreamMachine" +/+ "extras" +/+ "MIDIMaps" +/+ "BCR.midimap.scd")|
 		var map = if (File.exists(layout))
 		{
@@ -301,19 +311,39 @@ DM_Synth : Synth {
 			"MIDI map load failed !".postln;
 		};
 
-		if (map.notNil) {
-			var out;
+		# midiMap, selectMap = map;
+
+		if (midiMap.notNil && selectMap.notNil) {
 			MIDIClient.init(1, 1);
-			// initialisation du controlleur externe
-			out = MIDIOut(0);
-			busses.do {|bus, i| out.control(0, map[i], bus[1])};
+			midiOut = MIDIOut(0);
 			// initialisation du récepteur MIDI
-			MIDIFunc.cc({|val, num, chan, src|
-				this.setBus(map.indexOf(num), val);
-				// DEBUG
-				// "%: %".format(chan, num).postln;
-			}, map);
+			midiFunc = MIDIFunc.cc({|val, num, chan, src|
+				var index = midiMap.indexOf(num);
+				if (sharedCtrls.includes(index)) {
+					voices.do {|v| v.setBus(index, val)};
+				} {
+					voices[activeVoice].setBus(index, val);
+				};
+			}, midiMap);
+			selectFunc = MIDIFunc.cc({|val, num, chan, src|
+				var sel = selectMap.indexOf(num);
+				if (sel < voices.size) {
+					activeVoice = sel;
+					midiOut.control(0, selectMap[sel], 127);
+					selectMap.do {|ctrl, i| if (i!=sel) { midiOut.control(0, ctrl, 0) }};
+					this.selectVoice(sel);
+				}
+			}, selectMap);
 		};
+	}
+
+	*freeMIDIInterface {
+		if (midiFunc.notNil) {midiFunc.free; midiFunc = nil};
+	}
+
+	*selectVoice {|num|
+		// initialisation du controlleur externe
+		voices[num].busses.do {|bus, i| midiOut.control(0, midiMap[i], bus[1])};
 	}
 
 	free {
@@ -323,6 +353,8 @@ DM_Synth : Synth {
 		super.free;
 		// libérer les Bus
 		busses.do(_.free);
+		// se retirer de la liste des voix
+		voices.remove(this);
 	}
 
 	save {|path|
